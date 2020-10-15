@@ -81,17 +81,16 @@ def make_map_cartopy(projection=ccrs.PlateCarree()):
     return fig, ax
 
 
-def untar_gz()
+def untar_gz():
     dirs = glob.glob('gdas*.txt')
 
     for dir1 in dirs:
         os.system('cd  ' + dir1+ '; gunzip *.gz; cd ..')
 
 
-def obs_data2csv()
-     f_synop_all = '../gdas.ADPSFC.all.csv'
-
-    if not os.path.exists(base_url + fname)
+def obs_data2csv():
+    f_synop_all = '../gdas.ADPSFC.all.csv'
+    if not os.path.exists(base_url + fname):
         del synop
         # untar gunzip files
         dirs  = glob.glob('gdas*.txt')
@@ -111,21 +110,20 @@ def obs_data2csv()
     return synop
 
 
-f_synop_all = '../gdas.ADPSFC.all.csv'
+f_synop_all = 'gdas.ADPSFC.all.csv'
 syn = pd.read_csv(f_synop_all,parse_dates=['YYYYMMDDHHMM'])
 
-syn.dir_math = 270 - syn.WDIR
-wind_x = syn.WSPD * cos(syn.dir_math)
-wind_y = syn.WSPD * sin(syn.dir_math)
+syn['wind_math_direction'] = 270 - syn.WDIR
+syn.wind_math_direction[syn.wind_math_direction<0] = syn.wind_math_direction[syn.wind_math_direction<0] + 360
 
-
+syn['wind_x'] = syn.WSPD * np.cos(syn.wind_math_direction)
+syn['wind_y'] = syn.WSPD * np.sin(syn.wind_math_direction)
 
 grps = syn.groupby('BBSSS')
 
-
-
-
+#for windrose
 bins = np.arange(0.0, 15, 2.5)
+
 
 
 #1) OBBI Bahrain International Airport   WMO id: 41150
@@ -142,7 +140,7 @@ st41150.dropna(inplace = True)
 st41150['SPD(M/S)'].plot(title=st41150.label)
 
 ax = WindroseAxes.from_ax()
-gcf().suptitle(st41150.label)
+plt.gcf().suptitle(st41150.label)
 ax.bar(direction = st41150.WDIR, var = st41150.WSPD, blowto=True, bins = bins, opening=0.8, edgecolor='white')
 ax.set_legend()
 
@@ -165,17 +163,21 @@ st41256['SPD(M/S)'].plot(title=st41256.label )
 
 
 ax = WindroseAxes.from_ax()
-gcf().suptitle(st41256.label)
+plt.gcf().suptitle(st41256.label)
 ax.bar(direction = st41256.WDIR, var = st41256.WSPD, blowto=True, bins = bins, opening=0.8, edgecolor='white')
 ax.set_legend()
+
+
+#save stations csv files
+st41256.to_csv(st41256.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')+'.csv')
+st41150.to_csv(st41150.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')+'.csv')
 
 
 #bins = np.arange(0.01, 10, 1)
 #plot_windrose(direction_or_df= st41150.WDIR,  var = st41150.WSPD, kind="contour",blowto=True, bins=bins, cmap=cm.hot, lw=3, rmax=2000)
 #ax, param = plot_windrose(direction_or_df= st41150.WDIR,  var = st41150.WSPD, kind="pdf"    ,blowto=True, bins=bins, cmap=cm.hot, lw=3, rmax=2000)
 
-
-
+############### plot map
 map_fig, map_ax = make_map_cartopy()
 # Inset axe it with a fixed size
 wrax_st41256 = inset_axes(map_ax,
@@ -210,6 +212,11 @@ map_fig.suptitle('Wind direction: Blow to')
 map_fig.savefig('../wind_roses.png', dpi = 300)
 
 
+
+
+
+
+plt.show()
 
 
 
