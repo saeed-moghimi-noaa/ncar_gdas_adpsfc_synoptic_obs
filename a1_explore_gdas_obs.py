@@ -113,6 +113,14 @@ def obs_data2csv():
 f_synop_all = 'gdas.ADPSFC.all.csv'
 syn = pd.read_csv(f_synop_all,parse_dates=['YYYYMMDDHHMM'])
 
+# clean up
+syn[np.abs(syn.WDIR) > 360] = np.nan
+syn[np.abs(syn['SPD(M/S)'])  > 100] = np.nan
+#
+syn.dropna(inplace=True)
+#
+#
+# direction convert
 syn['wind_math_direction'] = 270 - syn.WDIR
 syn.wind_math_direction[syn.wind_math_direction<0] = syn.wind_math_direction[syn.wind_math_direction<0] + 360
 
@@ -125,7 +133,6 @@ grps = syn.groupby('BBSSS')
 bins = np.arange(0.0, 15, 2.5)
 
 
-
 #1) OBBI Bahrain International Airport   WMO id: 41150
 OBBI_lat, OBBI_lon =  26.2708333333, 50.6336111111
 
@@ -133,44 +140,41 @@ st41150 = grps.get_group(41150).set_index('YYYYMMDDHHMM').sort_index()
 st41150.lat = OBBI_lat
 st41150.lon = OBBI_lon
 st41150.label =  'Bahrain International Airport (OBBI; WMO id:41150)'
-
-st41150 [st41150['SPD(M/S)'] < -100] = np.nan
-st41150 [st41150['SPD(M/S)'] >  100] = np.nan
-st41150.dropna(inplace = True)
-st41150['SPD(M/S)'].plot(title=st41150.label)
-
-ax = WindroseAxes.from_ax()
-plt.gcf().suptitle(st41150.label)
-ax.bar(direction = st41150.WDIR, var = st41150.WSPD, blowto=True, bins = bins, opening=0.8, edgecolor='white')
-ax.set_legend()
-
-
-
+st41150.name  = st41150.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')
+#
 
 #2) Muscat International Airport (OOMS; WMO id: 41256)
 OOMS_lat, OOMS_lon = 23.5927777778, 58.2841666667
 
-plt.figure()
 st41256 = grps.get_group(41256).set_index('YYYYMMDDHHMM').sort_index()
 st41256.lat = OOMS_lat
 st41256.lon = OOMS_lon
 st41256.label = 'Muscat International Airport (OOMS; WMO id: 41256)'
-
-st41256 [st41256['SPD(M/S)'] < -100] = np.nan
-st41256 [st41256['SPD(M/S)'] >  100] = np.nan
-st41256.dropna(inplace = True)
-st41256['SPD(M/S)'].plot(title=st41256.label )
-
-
+st41256.name  = st41256.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')
+#
+plt.close('all')
+#
+st41150.plot(y=['SPD(M/S)','wind_math_direction'],title=st41150.label,subplots=True)
+plt.gcf().savefig(st41150.name + '.png', dpi=300)
+plt.close()
+#
+st41256.plot(y=['SPD(M/S)','wind_math_direction'],title=st41256.label,subplots=True)
+plt.gcf().savefig(st41256.name + '.png', dpi=300)
+plt.close()
+#
+ax = WindroseAxes.from_ax()
+plt.gcf().suptitle(st41150.label)
+ax.bar(direction = st41150.WDIR, var = st41150.WSPD, blowto=True, bins = bins, opening=0.8, edgecolor='white')
+ax.set_legend()
+#
 ax = WindroseAxes.from_ax()
 plt.gcf().suptitle(st41256.label)
 ax.bar(direction = st41256.WDIR, var = st41256.WSPD, blowto=True, bins = bins, opening=0.8, edgecolor='white')
 ax.set_legend()
 
-
 #save stations csv files
-st41256.to_csv(st41256.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')+'.csv')
-st41150.to_csv(st41150.label.replace(' ','_').replace(';','_').replace(':','_').replace('(','').replace(')','')+'.csv')
+st41256.to_csv(st41256.name + '.csv')
+st41150.to_csv(st41150.name + '.csv')
 
 
 #bins = np.arange(0.01, 10, 1)
@@ -210,10 +214,6 @@ for ax in [wrax_st41150, wrax_st41256]:
 leg = wrax_st41256.set_legend(bbox_to_anchor=(-3, -0.8),title='Speed [m/s]')
 map_fig.suptitle('Wind direction: Blow to')
 map_fig.savefig('../wind_roses.png', dpi = 300)
-
-
-
-
 
 
 plt.show()
